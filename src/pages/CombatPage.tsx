@@ -28,13 +28,14 @@ export function CombatPage() {
       navigate('/');
     }
   }, [id, combatState, isLoading, navigate]);
-  const handleNextTurn = () => {
-    const updatedCombat = nextTurn(id!);
+  const handleNextTurn = useCallback(() => {
+    if (!id) return;
+    const updatedCombat = nextTurn(id);
     if (updatedCombat) {
       const activeEntity = updatedCombat.entities[updatedCombat.activeIndex];
       if (activeEntity) toast.info(`${activeEntity.name}'s turn!`);
     }
-  };
+  }, [id, nextTurn]);
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (!combatState || combatState.entities.length === 0) return;
     const livingEntities = combatState.entities.filter(e => !e.isDead);
@@ -53,7 +54,7 @@ export function CombatPage() {
       event.preventDefault();
       handleNextTurn();
     }
-  }, [combatState, selectedEntityId, id]);
+  }, [combatState, selectedEntityId, handleNextTurn]);
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
     return () => {

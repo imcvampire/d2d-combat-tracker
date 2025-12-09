@@ -25,7 +25,7 @@ const combatStateSchema = z.object({
     maxHP: z.number(),
     currentHP: z.number(),
     initiative: z.number(),
-    statuses: z.array(z.string()),
+    statuses: z.array(z.enum(['poisoned', 'stunned', 'bleed'])),
     isDead: z.boolean(),
   })),
   activeIndex: z.number(),
