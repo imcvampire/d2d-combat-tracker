@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useParams, Link, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Home, Loader2, ServerCrash, Users } from 'lucide-react';
-import type { ApiResponse, CombatState, Entity } from '@shared/types';
+import { Home, Loader2, ServerCrash, Users, Settings, Share2 } from 'lucide-react';
+import { toast, Toaster } from 'sonner';
+import type { ApiResponse, CombatState } from '@shared/types';
 import { InitiativeList } from '@/components/Combat/InitiativeList';
 import { EntityDetail } from '@/components/Combat/EntityDetail';
 import { CombatControls } from '@/components/Combat/CombatControls';
 import { AddEntitySheet } from '@/components/Combat/AddEntitySheet';
+import { SettingsSheet } from '@/components/SettingsSheet';
 import { Button } from '@/components/ui/button';
-import { Toaster } from 'sonner';
 const fetchCombatState = async (id: string): Promise<CombatState> => {
   const res = await fetch(`/api/combat/${id}`);
   if (!res.ok) {
@@ -24,18 +25,28 @@ const fetchCombatState = async (id: string): Promise<CombatState> => {
 };
 export function CombatPage() {
   const { id } = useParams<{ id: string }>();
-  const queryClient = useQueryClient();
+  const location = useLocation();
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [isAddSheetOpen, setAddSheetOpen] = useState(false);
+  const [isSettingsSheetOpen, setSettingsSheetOpen] = useState(false);
   const { data: combatState, isLoading, error } = useQuery({
     queryKey: ['combat', id],
     queryFn: () => fetchCombatState(id!),
     enabled: !!id,
+    refetchInterval: 5000, // Poll every 5 seconds
     refetchOnWindowFocus: true,
   });
   const selectedEntity = combatState?.entities.find(e => e.id === selectedEntityId) || null;
   const handleSelectEntity = (entityId: string) => {
     setSelectedEntityId(prevId => (prevId === entityId ? null : entityId));
+  };
+  const handleShare = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      toast.success('Encounter URL copied to clipboard!');
+    }, () => {
+      toast.error('Failed to copy URL.');
+    });
   };
   if (isLoading) {
     return (
@@ -62,14 +73,22 @@ export function CombatPage() {
       <div className="min-h-screen w-full bg-retroDark text-foreground grain">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-8 md:py-10 lg:py-12">
-            <header className="flex items-center justify-between mb-8">
+            <header className="flex items-center justify-between mb-8 gap-4">
               <div>
                 <h1 className="text-3xl md:text-4xl font-pixel text-cyan">{combatState?.name}</h1>
                 <p className="text-muted-foreground">Round: {combatState?.round}</p>
               </div>
-              <Button asChild variant="ghost" size="icon" className="text-cyan hover:bg-cyan/10">
-                <Link to="/"><Home /></Link>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button onClick={handleShare} variant="ghost" size="icon" className="text-cyan hover:bg-cyan/10">
+                  <Share2 />
+                </Button>
+                <Button onClick={() => setSettingsSheetOpen(true)} variant="ghost" size="icon" className="text-cyan hover:bg-cyan/10">
+                  <Settings />
+                </Button>
+                <Button asChild variant="ghost" size="icon" className="text-cyan hover:bg-cyan/10">
+                  <Link to="/"><Home /></Link>
+                </Button>
+              </div>
             </header>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
               <motion.div layout className="md:col-span-2 space-y-4">
@@ -94,6 +113,7 @@ export function CombatPage() {
                   {selectedEntity && (
                     <motion.div
                       layout
+                      key={selectedEntity.id}
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
@@ -110,6 +130,7 @@ export function CombatPage() {
         <CombatControls combatId={id!} onAddEntity={() => setAddSheetOpen(true)} />
       </div>
       <AddEntitySheet combatId={id!} isOpen={isAddSheetOpen} onOpenChange={setAddSheetOpen} />
+      <SettingsSheet combatState={combatState} isOpen={isSettingsSheetOpen} onOpenChange={setSettingsSheetOpen} />
       <Toaster richColors theme="dark" />
     </>
   );

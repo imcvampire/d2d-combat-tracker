@@ -27,9 +27,13 @@ export interface CombatState {
   entities: Entity[];
   activeIndex: number;
   round: number;
+  createdAt?: string;
 }
 export type CreateCombatRequest = {
   name: string;
 };
 export type AddEntityRequest = Omit<Entity, 'id' | 'isDead' | 'statuses'>;
 export type UpdateEntityRequest = Partial<Omit<Entity, 'id'>>;
+export interface ImportCombatRequest {
+  json: string;
+}

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Minus, Plus, Heart, Shield, Swords, Trash2 } from 'lucide-react';
+import { Minus, Plus, Trash2 } from 'lucide-react';
 import type { Entity, ApiResponse, CombatState, Status, UpdateEntityRequest } from '@shared/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,9 +69,9 @@ export function EntityDetail({ entity, combatId }: EntityDetailProps) {
       : [...entity.statuses, status];
     updateMutation.mutate({ combatId, entityId: entity.id, updates: { statuses: newStatuses } });
   };
-  const handleInitiativeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInitiativeChange = (e: React.FocusEvent<HTMLInputElement>) => {
     const newInitiative = parseInt(e.target.value, 10);
-    if (!isNaN(newInitiative)) {
+    if (!isNaN(newInitiative) && newInitiative !== entity.initiative) {
       updateMutation.mutate({ combatId, entityId: entity.id, updates: { initiative: newInitiative } });
     }
   };
@@ -110,7 +110,7 @@ export function EntityDetail({ entity, combatId }: EntityDetailProps) {
         <div>
           <label className="font-pixel text-sm text-muted-foreground">HP</label>
           <div className="space-y-2">
-            <Progress value={hpPercentage} className="h-4" indicatorClassName={cn(hpPercentage > 50 ? "bg-cyan" : hpPercentage > 20 ? "bg-yellow-500" : "bg-magenta")} />
+            <Progress value={hpPercentage} className={cn("h-4 [&>div]:transition-all [&>div]:duration-500", hpPercentage > 50 ? "[&>div]:bg-cyan" : hpPercentage > 20 ? "[&>div]:bg-yellow-500" : "[&>div]:bg-magenta")} />
             <div className="text-center font-mono text-lg">{entity.currentHP} / {entity.maxHP}</div>
             <div className="flex items-center gap-2">
               <Button size="icon" variant="outline" className="border-magenta text-magenta hover:bg-magenta hover:text-black" onClick={() => handleHpChange(-damage)}><Minus /></Button>

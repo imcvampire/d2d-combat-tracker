@@ -1,6 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
 import type { DemoItem, CombatState, Entity, AddEntityRequest, UpdateEntityRequest } from '@shared/types';
-import { MOCK_ITEMS } from '@shared/mock-data';
 import { MOCK_COMBATS } from '@shared/mock-data';
 import { v4 as uuid } from 'uuid';
 const sortEntities = (entities: Entity[]): Entity[] => {
@@ -28,6 +27,7 @@ export class GlobalDurableObject extends DurableObject {
         entities: [],
         activeIndex: 0,
         round: 1,
+        createdAt: new Date().toISOString(),
       };
       await this.ctx.storage.put(`combat_${id}`, newState);
       return newState;
@@ -36,6 +36,9 @@ export class GlobalDurableObject extends DurableObject {
       let state = await this.ctx.storage.get<CombatState>(`combat_${id}`);
       if (!state && id === 'demo') {
         const demoState = MOCK_COMBATS.demo;
+        if (!demoState.createdAt) {
+          demoState.createdAt = new Date().toISOString();
+        }
         await this.ctx.storage.put(`combat_demo`, demoState);
         return demoState;
       }
@@ -64,8 +67,10 @@ export class GlobalDurableObject extends DurableObject {
       state.entities = state.entities.map(e => {
         if (e.id === entityId) {
           const updatedEntity = { ...e, ...updates };
-          updatedEntity.currentHP = Math.max(0, Math.min(updatedEntity.maxHP, updatedEntity.currentHP));
-          updatedEntity.isDead = updatedEntity.currentHP <= 0;
+          if (updates.currentHP !== undefined) {
+            updatedEntity.currentHP = Math.max(0, Math.min(updatedEntity.maxHP, updatedEntity.currentHP));
+            updatedEntity.isDead = updatedEntity.currentHP <= 0;
+          }
           return updatedEntity;
         }
         return e;
@@ -87,15 +92,16 @@ export class GlobalDurableObject extends DurableObject {
       if (state.entities.length === 0) return state;
       const livingEntities = state.entities.filter(e => !e.isDead);
       if (livingEntities.length === 0) return state;
-      const currentTurnEntityId = state.entities[state.activeIndex]?.id;
-      let nextIndex = (state.activeIndex + 1) % state.entities.length;
-      // Find the next living entity
-      let attempts = 0;
-      while(state.entities[nextIndex].isDead && attempts < state.entities.length) {
-        nextIndex = (nextIndex + 1) % state.entities.length;
-        attempts++;
+      let nextIndex = state.activeIndex;
+      if (state.entities.length > 0) {
+        nextIndex = (state.activeIndex + 1) % state.entities.length;
+        let attempts = 0;
+        while(state.entities[nextIndex].isDead && attempts < state.entities.length) {
+          nextIndex = (nextIndex + 1) % state.entities.length;
+          attempts++;
+        }
       }
-      if (nextIndex <= state.activeIndex) {
+      if (nextIndex <= state.activeIndex && livingEntities.length > 0) {
         state.round += 1;
       }
       state.activeIndex = nextIndex;
@@ -134,12 +140,8 @@ export class GlobalDurableObject extends DurableObject {
       return value;
     }
     async getDemoItems(): Promise<DemoItem[]> {
-      const items = await this.ctx.storage.get("demo_items");
-      if (items) {
-        return items as DemoItem[];
-      }
-      await this.ctx.storage.put("demo_items", MOCK_ITEMS);
-      return MOCK_ITEMS;
+      const items = await this.ctx.storage.get<DemoItem[]>("demo_items");
+      return items || [];
     }
     async addDemoItem(item: DemoItem): Promise<DemoItem[]> {
       const items = await this.getDemoItems();
