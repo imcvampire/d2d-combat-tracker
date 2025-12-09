@@ -37,3 +37,4 @@ export type UpdateEntityRequest = Partial<Omit<Entity, 'id'>>;
 export interface ImportCombatRequest {
   json: string;
 }
+export type ImportCombatResponse = ApiResponse<CombatState>;

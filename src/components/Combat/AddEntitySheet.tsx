@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { AddEntityRequest, ApiResponse, CombatState } from '@shared/types';
@@ -18,8 +17,8 @@ interface AddEntitySheetProps {
 const entitySchema = z.object({
   name: z.string().min(1, 'Name is required'),
   type: z.enum(['player', 'monster']),
-  maxHP: z.coerce.number().int().min(1, 'HP must be at least 1'),
-  initiative: z.coerce.number().int().min(0, 'Initiative must be non-negative'),
+  maxHP: z.number({ invalid_type_error: "HP must be a number" }).int().min(1, 'HP must be at least 1'),
+  initiative: z.number({ invalid_type_error: "Initiative must be a number" }).int().min(0, 'Initiative must be non-negative'),
 });
 type EntityFormData = z.infer<typeof entitySchema>;
 const addEntity = async ({ combatId, entity }: { combatId: string, entity: AddEntityRequest }) => {
@@ -118,7 +117,7 @@ export function AddEntitySheet({ combatId, isOpen, onOpenChange }: AddEntityShee
                 <FormItem>
                   <FormLabel className="font-pixel">Max HP</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} />
+                    <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -132,7 +131,7 @@ export function AddEntitySheet({ combatId, isOpen, onOpenChange }: AddEntityShee
                   <FormLabel className="font-pixel">Initiative</FormLabel>
                   <div className="flex gap-2">
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
                     </FormControl>
                     <Button type="button" variant="outline" onClick={rollInitiative} className="border-cyan text-cyan hover:bg-cyan hover:text-black">
                       Roll

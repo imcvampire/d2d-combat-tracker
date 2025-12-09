@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { Env } from './core-utils';
-import type { DemoItem, ApiResponse, CombatState, AddEntityRequest, UpdateEntityRequest, CreateCombatRequest } from '@shared/types';
+import type { DemoItem, ApiResponse, CombatState, AddEntityRequest, UpdateEntityRequest, CreateCombatRequest, ImportCombatRequest } from '@shared/types';
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
     // --- COMBAT TRACKER ROUTES ---
     const handleDO = async (c: any, operation: (stub: any) => Promise<any>) => {
@@ -18,6 +18,10 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     app.post('/api/combat', async (c) => {
         const { name } = await c.req.json<CreateCombatRequest>();
         return handleDO(c, (stub) => stub.createCombat(name));
+    });
+    app.post('/api/combat/import', async (c) => {
+        const { json } = await c.req.json<ImportCombatRequest>();
+        return handleDO(c, (stub) => stub.importCombat(json));
     });
     app.get('/api/combat/:id', async (c) => {
         const id = c.req.param('id');

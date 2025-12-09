@@ -1,20 +1,72 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useTheme } from '@/hooks/use-theme';
 import { Switch } from '@/components/ui/switch';
-import type { CombatState } from '@shared/types';
+import type { CombatState, ApiResponse, ImportCombatResponse } from '@shared/types';
 interface SettingsSheetProps {
   combatState: CombatState | undefined;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
 }
+const combatStateSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  entities: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    type: z.enum(['player', 'monster']),
+    maxHP: z.number(),
+    currentHP: z.number(),
+    initiative: z.number(),
+    statuses: z.array(z.string()),
+    isDead: z.boolean(),
+  })),
+  activeIndex: z.number(),
+  round: z.number(),
+  createdAt: z.string().optional(),
+});
+const importCombat = async (json: string): Promise<ImportCombatResponse> => {
+  const res = await fetch('/api/combat/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ json }),
+  });
+  if (!res.ok) throw new Error('Failed to import encounter');
+  return res.json();
+};
 export function SettingsSheet({ combatState, isOpen, onOpenChange }: SettingsSheetProps) {
   const { isDark, toggleTheme } = useTheme();
+  const [usePixelFont, setUsePixelFont] = useState(() => localStorage.getItem('font-theme') === 'pixel');
   const [importJson, setImportJson] = useState('');
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  useEffect(() => {
+    document.body.classList.toggle('font-pixel-headings', usePixelFont);
+    localStorage.setItem('font-theme', usePixelFont ? 'pixel' : 'system');
+  }, [usePixelFont]);
+  const importMutation = useMutation({
+    mutationFn: importCombat,
+    onSuccess: (data) => {
+      if (data.success && data.data) {
+        queryClient.setQueryData(['combat', data.data.id], data.data);
+        toast.success('Encounter imported successfully!');
+        navigate(`/combat/${data.data.id}`);
+        onOpenChange(false);
+      } else {
+        toast.error(data.error || 'Failed to import.');
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
   const handleExport = () => {
     if (!combatState) {
       toast.error("No encounter data to export.");
@@ -38,15 +90,16 @@ export function SettingsSheet({ combatState, isOpen, onOpenChange }: SettingsShe
     }
   };
   const handleImport = () => {
-    // This is a placeholder for a more robust import feature in a later phase.
-    // For now, it demonstrates the UI.
     try {
       const parsed = JSON.parse(importJson);
-      // Here you would typically call a mutation to update/create an encounter
-      console.log("Imported data:", parsed);
-      toast.success("Encounter data loaded into text area. (Import functionality to be fully wired in a future phase)");
+      combatStateSchema.parse(parsed); // Validate against schema
+      importMutation.mutate(importJson);
     } catch (error) {
-      toast.error("Invalid JSON format.");
+      if (error instanceof z.ZodError) {
+        toast.error(`Invalid JSON format: ${error.errors.map(e => e.message).join(', ')}`);
+      } else {
+        toast.error("Invalid JSON format.");
+      }
     }
   };
   return (
@@ -60,13 +113,17 @@ export function SettingsSheet({ combatState, isOpen, onOpenChange }: SettingsShe
           <div className="space-y-4">
             <h3 className="font-pixel text-lg text-magenta">Appearance</h3>
             <div className="flex items-center justify-between">
-              <Label htmlFor="dark-mode-switch">Dark Mode</Label>
+              <Label htmlFor="dark-mode-switch" aria-label="Toggle dark mode">Dark Mode</Label>
               <Switch id="dark-mode-switch" checked={isDark} onCheckedChange={toggleTheme} />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="font-switch" aria-label="Toggle pixel font for headings">Pixel Font Headings</Label>
+              <Switch id="font-switch" checked={usePixelFont} onCheckedChange={setUsePixelFont} />
             </div>
           </div>
           <div className="space-y-4">
             <h3 className="font-pixel text-lg text-magenta">Encounter Data</h3>
-            <Button onClick={handleExport} disabled={!combatState} className="w-full">Export to JSON</Button>
+            <Button onClick={handleExport} disabled={!combatState} className="w-full" aria-label="Export encounter to JSON file">Export to JSON</Button>
             <div className="space-y-2">
               <Label htmlFor="import-json">Import from JSON</Label>
               <Textarea
@@ -75,8 +132,11 @@ export function SettingsSheet({ combatState, isOpen, onOpenChange }: SettingsShe
                 value={importJson}
                 onChange={(e) => setImportJson(e.target.value)}
                 className="min-h-[100px]"
+                aria-label="Paste encounter JSON here for import"
               />
-              <Button onClick={handleImport} variant="outline" className="w-full">Load Data</Button>
+              <Button onClick={handleImport} variant="outline" className="w-full" disabled={!importJson || importMutation.isPending} aria-label="Import encounter from JSON">
+                {importMutation.isPending ? 'Importing...' : 'Load Data'}
+              </Button>
             </div>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Entity } from '@shared/types';
+import { useEffect, useRef } from 'react';
 interface InitiativeListProps {
   entities: Entity[];
   activeIndex: number;
@@ -28,8 +29,27 @@ const itemVariants = {
   exit: { opacity: 0, y: -20 },
 };
 export function InitiativeList({ entities, activeIndex, selectedEntityId, onSelectEntity }: InitiativeListProps) {
+  const selectedRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (selectedRef.current) {
+      selectedRef.current.focus();
+    }
+  }, [selectedEntityId]);
+  const handleKeyDown = (event: React.KeyboardEvent, entityId: string) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      onSelectEntity(entityId);
+    }
+  };
   return (
-    <motion.div className="space-y-3" variants={listVariants} initial="hidden" animate="visible">
+    <motion.div
+      role="listbox"
+      aria-label="Initiative Order"
+      className="space-y-3 focus:outline-none"
+      variants={listVariants}
+      initial="hidden"
+      animate="visible"
+      tabIndex={-1}
+    >
       <AnimatePresence>
         {entities.map((entity, index) => {
           const isActive = index === activeIndex;
@@ -38,13 +58,18 @@ export function InitiativeList({ entities, activeIndex, selectedEntityId, onSele
           return (
             <motion.div
               key={entity.id}
+              ref={isSelected ? selectedRef : null}
               layout
               variants={itemVariants}
               exit="exit"
               transition={{ duration: 0.3, ease: "easeInOut" }}
               onClick={() => onSelectEntity(entity.id)}
+              onKeyDown={(e) => handleKeyDown(e, entity.id)}
+              role="option"
+              aria-selected={isSelected}
+              tabIndex={0}
               className={cn(
-                "relative p-4 rounded-lg border-2 transition-all duration-300 cursor-pointer overflow-hidden",
+                "relative p-4 rounded-lg border-2 transition-all duration-300 cursor-pointer overflow-hidden focus:outline-none focus:ring-2 focus:ring-cyan focus:ring-offset-2 focus:ring-offset-retroDark",
                 "bg-gray-900/50 border-gray-700 hover:border-cyan",
                 isSelected && "border-cyan shadow-glowCyan",
                 isActive && "border-magenta shadow-glowMagenta scale-105",
@@ -78,7 +103,11 @@ export function InitiativeList({ entities, activeIndex, selectedEntityId, onSele
                   </div>
                   <div className="text-sm text-muted-foreground capitalize">{entity.type}</div>
                   <div className="mt-2">
-                    <Progress value={hpPercentage} className={cn("h-3 bg-gray-700 [&>div]:transition-all [&>div]:duration-500", hpPercentage > 50 ? "[&>div]:bg-cyan" : hpPercentage > 20 ? "[&>div]:bg-yellow-500" : "[&>div]:bg-magenta")} />
+                    <Progress value={hpPercentage} className={cn("h-3 bg-gray-700", {
+                      '[&>div]:bg-gradient-to-r from-cyan to-green-400': hpPercentage > 50,
+                      '[&>div]:bg-yellow-500': hpPercentage <= 50 && hpPercentage > 20,
+                      '[&>div]:bg-gradient-to-r from-magenta to-red-500': hpPercentage <= 20,
+                    })} />
                     <div className="text-xs text-right mt-1 font-mono">{entity.currentHP} / {entity.maxHP}</div>
                   </div>
                 </div>

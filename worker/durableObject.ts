@@ -122,6 +122,32 @@ export class GlobalDurableObject extends DurableObject {
       await this.ctx.storage.put(`combat_${combatId}`, state);
       return state;
     }
+    async importCombat(json: string): Promise<CombatState> {
+      try {
+        const data = JSON.parse(json) as Partial<CombatState>;
+        if (!data.id || !data.name || !Array.isArray(data.entities)) {
+          throw new Error('Invalid combat data structure.');
+        }
+        const validatedEntities = data.entities.map(e => ({
+          ...e,
+          isDead: e.currentHP <= 0,
+          statuses: e.statuses || [],
+        }));
+        const validatedState: CombatState = {
+          id: data.id,
+          name: data.name,
+          entities: sortEntities(validatedEntities),
+          activeIndex: data.activeIndex ?? 0,
+          round: data.round ?? 1,
+          createdAt: data.createdAt || new Date().toISOString(),
+        };
+        await this.ctx.storage.put(`combat_${validatedState.id}`, validatedState);
+        return validatedState;
+      } catch (e) {
+        console.error("Import failed:", e);
+        throw new Error('Invalid JSON format or data.');
+      }
+    }
     // --- PRE-EXISTING DEMO METHODS ---
     async getCounterValue(): Promise<number> {
       const value = (await this.ctx.storage.get("counter_value")) || 0;
