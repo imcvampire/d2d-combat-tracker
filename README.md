@@ -49,6 +49,7 @@ All backend artifacts have been removed. This project is a pure static single-pa
 - `wrangler.jsonc` and `tsconfig.worker.json` have been deleted.
 - `package.json` contains no backend dependencies (e.g., hono, pino, @cloudflare/workers-types).
 - `vite.config.ts` and `tsconfig.node.json` are configured for a static-only build.
+- **Force-deleted wrangler.jsonc, tsconfig.worker.json, and all worker/ files (core-utils.ts, durableObject.ts, index.ts, userRoutes.ts). Verified: `bun run build` succeeds without Worker errors; package.json has no hono/pino/@cloudflare deps; tsconfig.json/vite.config.ts are static-only.**
 ## Deployment
 To deploy this application, build the static assets and host them on any static hosting provider.
 1. Build the project:
@@ -70,6 +71,7 @@ bun run build
 bun run preview
 ```
 This should run without any errors and serve the application from the `dist` folder.
+**Post-cleanup verification: `bun run build` (clean output), `bun run preview` (app loads without console errors).**
 ## License
 MIT License.
 **Project is 100% static SPA, verified production-ready with no deployment blockers.**
