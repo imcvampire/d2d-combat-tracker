@@ -17,7 +17,7 @@ The app is fully functional out-of-the-box, with optimistic UI updates, loading 
 - **Styling**: Tailwind CSS with custom themes (retro neon palette: #00FFD5, #FF3D81, #0B0B0B), Google Fonts (Press Start 2P for pixel accents).
 - **Build Tools**: Vite (bundling), Bun (package manager).
 - **Other**: Zod (validation), Immer (immutable updates), clsx & tailwind-merge (utility classes), UUID (IDs).
-No backend, databases, or external services required—everything runs in your browser.
+**Note**: The backend has been fully removed. The app runs entirely client-side with localStorage persistence.
 ## Installation
 This project uses Bun as the package manager for faster installs and development. Ensure you have Bun installed (v1.0+): [Install Bun](https://bun.sh/docs/installation).
 1. Clone the repository:
@@ -41,7 +41,7 @@ bun run dev
 ### Quick Demo
 1. On the Home page, click **Create Encounter** to start a new combat.
 2. Add entities via the **Add Entity** sheet (name, type: player/monster, max HP, initiative).
-3. Roll initiatives or edit manually—the list auto-sorts.
+3. Roll initiatives or edit manually��the list auto-sorts.
 4. Use **Next Turn** to advance; apply damage/heal or toggle statuses on selected entities.
 5. Data persists across refreshes via localStorage.
 ## Development
