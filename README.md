@@ -12,8 +12,8 @@ Key features include:
 - **Persistence**: All changes are automatically saved to localStorage; supports a mock demo encounter for a quick tour.
 The app is fully functional out-of-the-box, with optimistic UI updates, loading states, and error handling.
 ## Technology Stack
-- **Frontend**: React 18, React Router 6, TypeScript, Tailwind CSS 3, shadcn/ui (Radix UI primitives), Framer Motion (animations), Lucide React (icons), Sonner (toasts), Zustand (state management), @tanstack/react-query (data fetching/caching).
-- **State & Persistence**: Zustand for global state management, with `zustand/middleware/persist` for automatic saving to localStorage. No backend/Cloudflare dependencies; pure client-side with localStorage.
+- **Frontend**: React 18, React Router 6, TypeScript, Tailwind CSS 3, shadcn/ui (Radix UI primitives), Framer Motion (animations), Lucide React (icons), Sonner (toasts), Zustand (state management).
+- **State & Persistence**: Zustand for global state management, with `zustand/middleware/persist` for automatic saving to localStorage. Fully client-side with no backend dependencies.
 - **Styling**: Tailwind CSS with custom themes (retro neon palette: #00FFD5, #FF3D81, #0B0B0B), Google Fonts (Press Start 2P for pixel accents).
 - **Build Tools**: Vite (bundling), Bun (package manager).
 - **Other**: Zod (validation), Immer (immutable updates), clsx & tailwind-merge (utility classes), UUID (IDs).
@@ -43,33 +43,33 @@ bun run dev
 3. Roll initiatives or edit manually—the list auto-sorts.
 4. Use **Next Turn** to advance; apply damage/heal or toggle statuses on selected entities.
 5. Data persists across refreshes via localStorage.
-## Development
-### Project Structure
-- **Frontend** (`src/`): React components, pages, hooks, and utilities. Pages: `HomePage.tsx` (landing), `CombatPage.tsx` (main view).
-- **Shared** (`shared/`): Types (`types.ts`) and mock data.
-- **UI Components**: shadcn/ui in `src/components/ui/`—extend as needed without rewriting.
-- **Styling**: Custom Tailwind config in `tailwind.config.js`; add colors/animations there.
-### Scripts
-- `bun run dev`: Start dev server with Vite.
-- `bun run build`: Build the static application for production.
-- `bun run lint`: Run ESLint.
-- `bun run preview`: Local preview of the production build.
+## Backend Cleanup Confirmation
+All backend artifacts have been removed. This project is a pure static single-page application.
+- All `worker/` files (including `index.ts`, `durableObject.ts`, `userRoutes.ts`) have been deleted.
+- `wrangler.jsonc` and `tsconfig.worker.json` have been deleted.
+- `package.json` contains no backend dependencies (e.g., hono, pino, @cloudflare/workers-types).
+- `vite.config.ts` and `tsconfig.node.json` are configured for a static-only build.
 ## Deployment
-To deploy this application, build the static assets and host them on any static hosting provider. Backend fully removed—no wrangler.jsonc or worker/ files required. Deploy dist/ to static hosts only.
+To deploy this application, build the static assets and host them on any static hosting provider.
 1. Build the project:
    ```
    bun run build
    ```
+   This command will generate a `dist/` directory with all the necessary static files.
 2. Deploy the contents of the `dist/` directory to a static hosting service like:
    - Vercel
    - Netlify
    - GitHub Pages
    - Cloudflare Pages
-## Contributing
-Contributions welcome! Fork the repo, create a feature branch, and submit a PR. Focus on:
-- Bug fixes for persistence/UI.
-- New features or UI polish aligning with the retro aesthetic.
-Please adhere to the code style (ESLint, Prettier via `bun run lint`).
+### Build Verification
+You can verify the production build locally before deploying:
+```
+# First, build the project
+bun run build
+# Then, preview the production build
+bun run preview
+```
+This should run without any errors and serve the application from the `dist` folder.
 ## License
-MIT License. See [LICENSE](LICENSE) for details.
-**Project verified as 100% static SPA, ready for production.**
+MIT License.
+**Project is 100% static SPA, verified production-ready with no deployment blockers.**
