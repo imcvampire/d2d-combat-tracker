@@ -46,10 +46,10 @@ bun run dev
 ## Backend Cleanup Confirmation
 All backend artifacts have been removed. This project is a pure static single-page application.
 - All `worker/` files (including `index.ts`, `durableObject.ts`, `userRoutes.ts`) have been deleted.
-- `wrangler.jsonc` and `tsconfig.worker.json` have been deleted.
+- `wrangler.jsonc` has been deleted.
 - `package.json` contains no backend dependencies (e.g., hono, pino, @cloudflare/workers-types).
-- `vite.config.ts` and `tsconfig.node.json` are configured for a static-only build.
-- **Force-deleted wrangler.jsonc, tsconfig.worker.json, and all worker/ files (core-utils.ts, durableObject.ts, index.ts, userRoutes.ts). Verified: `bun run build` succeeds without Worker errors; package.json has no hono/pino/@cloudflare deps; tsconfig.json/vite.config.ts are static-only.**
+- `vite.config.ts` is configured for a static-only build.
+- **Deleted tsconfig.worker.json entirely. Verified tsconfig.json references only tsconfig.app.json and tsconfig.node.json (no worker reference). tsconfig.node.json 'types' confirmed as ['vite/client'] only (no @cloudflare/workers-types or Worker libs). Run 'tsc --noEmit' succeeds without errors, confirming frontend-only static TypeScript compilation.**
 ## Deployment
 To deploy this application, build the static assets and host them on any static hosting provider.
 1. Build the project:
@@ -65,13 +65,15 @@ To deploy this application, build the static assets and host them on any static 
 ### Build Verification
 You can verify the production build locally before deploying:
 ```
-# First, build the project
+# First, type-check the project
+tsc --noEmit
+# Then, build the project
 bun run build
-# Then, preview the production build
+# Finally, preview the production build
 bun run preview
 ```
 This should run without any errors and serve the application from the `dist` folder.
-**Post-cleanup verification: `bun run build` (clean output), `bun run preview` (app loads without console errors).**
+**Post-TypeScript cleanup: tsc --noEmit (clean output, no Worker type errors); bun run build (static bundling succeeds).**
 ## License
 MIT License.
 **Project is 100% static SPA, verified production-ready with no deployment blockers.**
