@@ -8,7 +8,7 @@
 const fs = require('fs');
 const { execSync } = require('child_process');
 
-const PROJECT_NAME = "retro-init-tracker-mf2xc4_f95d9cp_-upoxd";
+const PROJECT_NAME = "d2d-combat-tracker";
 const BOOTSTRAP_MARKER = '.bootstrap-complete';
 
 // Check if already bootstrapped
@@ -22,19 +22,19 @@ console.log('🚀 Running first-time project setup...\n');
 try {
     // Update package.json
     updatePackageJson();
-    
+
     // Update wrangler.jsonc if exists
     updateWranglerJsonc();
-    
+
     // Run setup commands
     runSetupCommands();
-    
+
     // Mark as complete
     fs.writeFileSync(BOOTSTRAP_MARKER, new Date().toISOString());
-    
+
     // Self-delete
     fs.unlinkSync(__filename);
-    
+
     console.log('\n✅ Bootstrap complete! Project ready.');
 } catch (error) {
     console.error('❌ Bootstrap failed:', error.message);
@@ -46,12 +46,12 @@ function updatePackageJson() {
     try {
         const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
         pkg.name = PROJECT_NAME;
-        
+
         // Remove prepare script after bootstrap
         if (pkg.scripts && pkg.scripts.prepare) {
             delete pkg.scripts.prepare;
         }
-        
+
         fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
         console.log('✓ Updated package.json with project name: ' + PROJECT_NAME);
     } catch (error) {
@@ -65,7 +65,7 @@ function updateWranglerJsonc() {
         console.log('⊘ wrangler.jsonc not found, skipping');
         return;
     }
-    
+
     try {
         let content = fs.readFileSync('wrangler.jsonc', 'utf8');
         content = content.replace(/"name"\s*:\s*"[^"]*"/, `"name": "${PROJECT_NAME}"`);
@@ -78,21 +78,21 @@ function updateWranglerJsonc() {
 
 function runSetupCommands() {
     const commands = [];
-    
+
     if (commands.length === 0) {
         console.log('⊘ No setup commands to run');
         return;
     }
-    
+
     console.log('\n📦 Running setup commands...\n');
-    
+
     let successCount = 0;
     let failCount = 0;
-    
+
     for (const cmd of commands) {
         console.log(`▸ ${cmd}`);
         try {
-            execSync(cmd, { 
+            execSync(cmd, {
                 stdio: 'inherit',
                 cwd: process.cwd()
             });
@@ -103,6 +103,6 @@ function runSetupCommands() {
             console.warn(`   Error: ${error.message}`);
         }
     }
-    
+
     console.log(`\n✓ Commands completed: ${successCount} successful, ${failCount} failed\n`);
 }
