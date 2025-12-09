@@ -40,29 +40,27 @@ bun run dev
 ### Quick Demo
 1. On the Home page, click **Create Encounter** to start a new combat.
 2. Add entities via the **Add Entity** sheet (name, type: player/monster, max HP, initiative).
-3. Roll initiatives or edit manually—the list auto-sorts.
+3. Roll initiatives or edit manually��the list auto-sorts.
 4. Use **Next Turn** to advance; apply damage/heal or toggle statuses on selected entities.
 5. Data persists across refreshes via localStorage.
 ## Backend Cleanup Confirmation
 All backend artifacts have been removed. This project is a pure static single-page application.
-- All `worker/` files (including `index.ts`, `durableObject.ts`, `userRoutes.ts`) have been deleted.
-- `wrangler.jsonc` has been deleted.
-- `package.json` contains no backend dependencies (e.g., hono, pino, @cloudflare/workers-types).
-- `vite.config.ts` is configured for a static-only build.
-- **Deleted tsconfig.worker.json entirely. Verified tsconfig.json references only tsconfig.app.json and tsconfig.node.json (no worker reference). tsconfig.node.json 'types' confirmed as ['vite/client'] only (no @cloudflare/workers-types or Worker libs). Run 'tsc --noEmit' succeeds without errors, confirming frontend-only static TypeScript compilation.**
+- **Complete removal of `worker/` directory**: All files (`core-utils.ts`, `durableObject.ts`, `index.ts`, `userRoutes.ts`) have been deleted.
+- **`wrangler.jsonc` and `tsconfig.worker.json` fully deleted.**
+- **`package.json` verified**: No backend dependencies (e.g., `hono`, `pino`) are present. Scripts are purely for static development (`dev`, `build`, `lint`, `preview`, `deploy`).
+- **`tsconfig.json` references confirmed**: Only `tsconfig.app.json` and `tsconfig.node.json` are referenced.
+- **`vite.config.ts`**: Configured with the React plugin and path aliases only; no Worker-related plugins.
+- **Project structure**: Purely client-side, consisting of `src/`, `shared/`, and configuration files.
+- **Build verified**: `tsc --noEmit` runs clean with no Worker type errors. `bun run build` successfully produces a static `dist/` output with no backend artifacts.
 ## Deployment
-To deploy this application, build the static assets and host them on any static hosting provider.
+Project is now a 100% static SPA: build to `dist/` and host on any static hosting provider like Vercel, Netlify, GitHub Pages, or Cloudflare Pages. No Cloudflare Workers are required.
 1. Build the project:
    ```
    bun run build
    ```
    This command will generate a `dist/` directory with all the necessary static files.
-2. Deploy the contents of the `dist/` directory to a static hosting service like:
-   - Vercel
-   - Netlify
-   - GitHub Pages
-   - Cloudflare Pages
-### Build Verification
+2. Deploy the contents of the `dist/` directory to your hosting service.
+### Final Verification
 You can verify the production build locally before deploying:
 ```
 # First, type-check the project
@@ -72,8 +70,7 @@ bun run build
 # Finally, preview the production build
 bun run preview
 ```
-This should run without any errors and serve the application from the `dist` folder.
-**Post-TypeScript cleanup: tsc --noEmit (clean output, no Worker type errors); bun run build (static bundling succeeds).**
+Post-cleanup, success in these commands confirms the project is a production-ready static SPA.
 ## License
 MIT License.
 **Project is 100% static SPA, verified production-ready with no deployment blockers.**
