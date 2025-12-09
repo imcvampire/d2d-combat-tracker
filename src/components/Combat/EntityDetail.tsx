@@ -1,6 +1,7 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Minus, Plus, Trash2 } from 'lucide-react';
-import type { Entity, Status } from '@shared/types';
+import { Minus, Plus, Heart, Shield, Swords, Trash2 } from 'lucide-react';
+import type { Entity, ApiResponse, CombatState, Status, UpdateEntityRequest } from '@shared/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,36 +19,66 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { useCombatStore } from '@/stores/useCombatStore';
+} from "@/components/ui/alert-dialog"
 interface EntityDetailProps {
   entity: Entity;
   combatId: string;
 }
+const updateEntity = async ({ combatId, entityId, updates }: { combatId: string, entityId: string, updates: UpdateEntityRequest }) => {
+  const res = await fetch(`/api/combat/${combatId}/entity/${entityId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) throw new Error('Failed to update entity');
+  return res.json() as Promise<ApiResponse<CombatState>>;
+};
+const deleteEntity = async ({ combatId, entityId }: { combatId: string, entityId: string }) => {
+  const res = await fetch(`/api/combat/${combatId}/entity/${entityId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Failed to delete entity');
+  return res.json() as Promise<ApiResponse<CombatState>>;
+};
 export function EntityDetail({ entity, combatId }: EntityDetailProps) {
-  const updateEntity = useCombatStore(state => state.updateEntity);
-  const deleteEntity = useCombatStore(state => state.deleteEntity);
+  const queryClient = useQueryClient();
   const [damage, setDamage] = useState(1);
+  const mutationOptions = {
+    onSuccess: (data: ApiResponse<CombatState>) => {
+      if (data.success) {
+        queryClient.setQueryData(['combat', combatId], data.data);
+      } else {
+        toast.error(data.error || 'An unknown error occurred');
+        queryClient.invalidateQueries({ queryKey: ['combat', combatId] });
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+      queryClient.invalidateQueries({ queryKey: ['combat', combatId] });
+    },
+  };
+  const updateMutation = useMutation({ mutationFn: updateEntity, ...mutationOptions });
+  const deleteMutation = useMutation({ mutationFn: deleteEntity, ...mutationOptions });
   const handleHpChange = (amount: number) => {
     const newHP = entity.currentHP + amount;
-    updateEntity(combatId, entity.id, { currentHP: newHP });
+    updateMutation.mutate({ combatId, entityId: entity.id, updates: { currentHP: newHP } });
   };
   const handleStatusToggle = (status: Status) => {
     const newStatuses = entity.statuses.includes(status)
       ? entity.statuses.filter(s => s !== status)
       : [...entity.statuses, status];
-    updateEntity(combatId, entity.id, { statuses: newStatuses });
+    updateMutation.mutate({ combatId, entityId: entity.id, updates: { statuses: newStatuses } });
   };
-  const handleInitiativeChange = (e: React.FocusEvent<HTMLInputElement>) => {
+  const handleInitiativeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newInitiative = parseInt(e.target.value, 10);
-    if (!isNaN(newInitiative) && newInitiative !== entity.initiative) {
-      updateEntity(combatId, entity.id, { initiative: newInitiative });
+    if (!isNaN(newInitiative)) {
+      updateMutation.mutate({ combatId, entityId: entity.id, updates: { initiative: newInitiative } });
     }
   };
   const handleDelete = () => {
-    deleteEntity(combatId, entity.id);
-    toast.warning(`Deleted ${entity.name}.`);
-  };
+    toast.warning(`Deleted ${entity.name}.`)
+    deleteMutation.mutate({ combatId, entityId: entity.id });
+  }
   const hpPercentage = (entity.currentHP / entity.maxHP) * 100;
   return (
     <Card className="bg-gray-900/50 border-2 border-gray-700 sticky top-24">
@@ -79,7 +110,7 @@ export function EntityDetail({ entity, combatId }: EntityDetailProps) {
         <div>
           <label className="font-pixel text-sm text-muted-foreground">HP</label>
           <div className="space-y-2">
-            <Progress value={hpPercentage} className={cn("h-4 [&>div]:transition-all [&>div]:duration-500", hpPercentage > 50 ? "[&>div]:bg-cyan" : hpPercentage > 20 ? "[&>div]:bg-yellow-500" : "[&>div]:bg-magenta")} />
+            <Progress value={hpPercentage} className="h-4" indicatorClassName={cn(hpPercentage > 50 ? "bg-cyan" : hpPercentage > 20 ? "bg-yellow-500" : "bg-magenta")} />
             <div className="text-center font-mono text-lg">{entity.currentHP} / {entity.maxHP}</div>
             <div className="flex items-center gap-2">
               <Button size="icon" variant="outline" className="border-magenta text-magenta hover:bg-magenta hover:text-black" onClick={() => handleHpChange(-damage)}><Minus /></Button>
