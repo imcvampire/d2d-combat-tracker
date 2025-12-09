@@ -1,41 +1,25 @@
-import { useMutation } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { toast, Toaster } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion } from 'framer-motion';
-import { Dices, Github } from 'lucide-react';
-import type { ApiResponse, CombatState } from '@shared/types';
+import { Dices } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
-async function createEncounter(name: string): Promise<ApiResponse<CombatState>> {
-  const res = await fetch('/api/combat', {
-    method: 'POST',
-    body: JSON.stringify({ name }),
-    headers: { 'Content-Type': 'application/json' },
-  });
-  if (!res.ok) {
-    throw new Error('Failed to create encounter');
-  }
-  return res.json();
-}
+import { useCombatStore } from '@/stores/useCombatStore';
+import { useState } from 'react';
 export function HomePage() {
   const navigate = useNavigate();
-  const mutation = useMutation({
-    mutationFn: createEncounter,
-    onSuccess: (response) => {
-      if (response.success && response.data) {
-        toast.success('Encounter created! Entering the fray...');
-        navigate(`/combat/${response.data.id}`);
-      } else {
-        toast.error(response.error || 'Could not create encounter.');
-      }
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
+  const createCombat = useCombatStore((state) => state.createCombat);
+  const [isCreating, setIsCreating] = useState(false);
   const handleCreateEncounter = () => {
-    mutation.mutate('New Encounter');
+    setIsCreating(true);
+    try {
+      const newCombat = createCombat('New Encounter');
+      toast.success('Encounter created! Entering the fray...');
+      navigate(`/combat/${newCombat.id}`);
+    } catch (error) {
+      toast.error('Could not create encounter.');
+      setIsCreating(false);
+    }
   };
   return (
     <div className="min-h-screen w-full bg-retroDark text-foreground grain flex flex-col">
@@ -62,11 +46,11 @@ export function HomePage() {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button
                     onClick={handleCreateEncounter}
-                    disabled={mutation.isPending}
+                    disabled={isCreating}
                     size="lg"
                     className="font-bold text-lg bg-accent-gradient text-black hover:shadow-glowCyan hover:scale-105 transition-all duration-200"
                   >
-                    {mutation.isPending ? 'Creating...' : 'Create New Encounter'}
+                    {isCreating ? 'Creating...' : 'Create New Encounter'}
                   </Button>
                   <Button asChild variant="outline" size="lg" className="font-bold text-lg border-2 border-magenta text-magenta hover:bg-magenta hover:text-black hover:shadow-glowMagenta transition-all duration-200">
                     <Link to="/combat/demo">
@@ -80,7 +64,7 @@ export function HomePage() {
         </div>
       </main>
       <footer className="w-full py-4 text-center text-muted-foreground/50 text-sm">
-        <p>Built with ❤��� at Cloudflare</p>
+        <p>Built with ❤️ at Cloudflare</p>
       </footer>
       <Toaster richColors theme="dark" />
     </div>

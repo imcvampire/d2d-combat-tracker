@@ -1,64 +1,43 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Home, Loader2, ServerCrash, Users, Settings, Share2 } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
-import type { ApiResponse, CombatState } from '@shared/types';
+import { useCombatStore } from '@/stores/useCombatStore';
 import { InitiativeList } from '@/components/Combat/InitiativeList';
 import { EntityDetail } from '@/components/Combat/EntityDetail';
 import { CombatControls } from '@/components/Combat/CombatControls';
 import { AddEntitySheet } from '@/components/Combat/AddEntitySheet';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { Button } from '@/components/ui/button';
-const fetchCombatState = async (id: string): Promise<CombatState> => {
-  const res = await fetch(`/api/combat/${id}`);
-  if (!res.ok) {
-    if (res.status === 404) throw new Error('Encounter not found.');
-    throw new Error('Failed to fetch encounter data.');
-  }
-  const response: ApiResponse<CombatState> = await res.json();
-  if (!response.success || !response.data) {
-    throw new Error(response.error || 'Invalid data received.');
-  }
-  return response.data;
-};
-const nextTurn = async (combatId: string) => {
-  const res = await fetch(`/api/combat/${combatId}/next-turn`, { method: 'POST' });
-  if (!res.ok) throw new Error(`Failed to advance turn`);
-  return res.json() as Promise<ApiResponse<CombatState>>;
-};
 export function CombatPage() {
   const { id } = useParams<{ id: string }>();
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [isAddSheetOpen, setAddSheetOpen] = useState(false);
   const [isSettingsSheetOpen, setSettingsSheetOpen] = useState(false);
-  const { data: combatState, isLoading, error } = useQuery({
-    queryKey: ['combat', id],
-    queryFn: () => fetchCombatState(id!),
-    enabled: !!id,
-    refetchInterval: 5000,
-    refetchOnWindowFocus: true,
-  });
-  const nextTurnMutation = useMutation({
-    mutationFn: nextTurn,
-    onSuccess: (data) => {
-      if (data.success && data.data) {
-        queryClient.setQueryData(['combat', data.data.id], data.data);
-        const activeEntity = data.data.entities[data.data.activeIndex];
-        if(activeEntity) toast.info(`${activeEntity.name}'s turn!`);
-      } else {
-        toast.error(data.error || 'An unknown error occurred');
-      }
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  const combatState = useCombatStore(state => state.getCombat(id!));
+  const nextTurn = useCombatStore(state => state.nextTurn);
+  useEffect(() => {
+    if (id) {
+      setIsLoading(false);
+    }
+    if (!isLoading && !combatState) {
+      toast.error("Encounter not found.");
+      navigate('/');
+    }
+  }, [id, combatState, isLoading, navigate]);
+  const handleNextTurn = () => {
+    const updatedCombat = nextTurn(id!);
+    if (updatedCombat) {
+      const activeEntity = updatedCombat.entities[updatedCombat.activeIndex];
+      if (activeEntity) toast.info(`${activeEntity.name}'s turn!`);
+    }
+  };
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (!combatState || combatState.entities.length === 0) return;
-    const livingEntities = combatState.entities;
+    const livingEntities = combatState.entities.filter(e => !e.isDead);
     if (livingEntities.length === 0) return;
     const currentIndex = livingEntities.findIndex(e => e.id === selectedEntityId);
     if (event.key === 'ArrowDown') {
@@ -72,9 +51,9 @@ export function CombatPage() {
     } else if (event.key === ' ' || event.key === 'Enter') {
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
       event.preventDefault();
-      nextTurnMutation.mutate(id!);
+      handleNextTurn();
     }
-  }, [combatState, selectedEntityId, nextTurnMutation, id]);
+  }, [combatState, selectedEntityId, id]);
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -101,12 +80,12 @@ export function CombatPage() {
       </div>
     );
   }
-  if (error) {
+  if (!combatState) {
     return (
       <div className="min-h-screen w-full bg-retroDark text-magenta flex flex-col items-center justify-center gap-4 grain p-4 text-center">
         <ServerCrash className="h-16 w-16" />
         <h1 className="font-pixel text-2xl">Error</h1>
-        <p className="text-muted-foreground">{error.message}</p>
+        <p className="text-muted-foreground">Encounter not found.</p>
         <Button asChild variant="outline" className="border-cyan text-cyan hover:bg-cyan hover:text-retroDark">
           <Link to="/">Return Home</Link>
         </Button>
@@ -120,8 +99,8 @@ export function CombatPage() {
           <div className="py-8 md:py-10 lg:py-12">
             <header role="banner" className="flex items-center justify-between mb-8 gap-4">
               <div>
-                <h1 className="text-3xl md:text-4xl font-pixel text-cyan">{combatState?.name}</h1>
-                <p className="text-muted-foreground" aria-live="polite">Round: {combatState?.round}</p>
+                <h1 className="text-3xl md:text-4xl font-pixel text-cyan">{combatState.name}</h1>
+                <p className="text-muted-foreground" aria-live="polite">Round: {combatState.round}</p>
               </div>
               <div className="flex items-center gap-2">
                 <Button onClick={handleShare} variant="ghost" size="icon" className="text-cyan hover:bg-cyan/10" aria-label="Share Encounter">
@@ -137,7 +116,7 @@ export function CombatPage() {
             </header>
             <main role="main" className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
               <motion.div layout className="md:col-span-2 space-y-4">
-                {combatState && combatState.entities.length > 0 ? (
+                {combatState.entities.length > 0 ? (
                   <InitiativeList
                     entities={combatState.entities}
                     activeIndex={combatState.activeIndex}
@@ -172,7 +151,7 @@ export function CombatPage() {
             </main>
           </div>
         </div>
-        <CombatControls combatId={id!} onAddEntity={() => setAddSheetOpen(true)} />
+        <CombatControls combatId={id!} onAddEntity={() => setAddSheetOpen(true)} onNextTurn={handleNextTurn} />
       </div>
       <AddEntitySheet combatId={id!} isOpen={isAddSheetOpen} onOpenChange={setAddSheetOpen} />
       <SettingsSheet combatState={combatState} isOpen={isSettingsSheetOpen} onOpenChange={setSettingsSheetOpen} />

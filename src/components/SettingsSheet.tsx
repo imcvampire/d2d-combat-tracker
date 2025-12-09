@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -9,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useTheme } from '@/hooks/use-theme';
 import { Switch } from '@/components/ui/switch';
-import type { CombatState, ApiResponse, ImportCombatResponse } from '@shared/types';
+import type { CombatState } from '@shared/types';
+import { useCombatStore } from '@/stores/useCombatStore';
 interface SettingsSheetProps {
   combatState: CombatState | undefined;
   isOpen: boolean;
@@ -32,41 +32,17 @@ const combatStateSchema = z.object({
   round: z.number(),
   createdAt: z.string().optional(),
 });
-const importCombat = async (json: string): Promise<ImportCombatResponse> => {
-  const res = await fetch('/api/combat/import', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ json }),
-  });
-  if (!res.ok) throw new Error('Failed to import encounter');
-  return res.json();
-};
 export function SettingsSheet({ combatState, isOpen, onOpenChange }: SettingsSheetProps) {
   const { isDark, toggleTheme } = useTheme();
   const [usePixelFont, setUsePixelFont] = useState(() => localStorage.getItem('font-theme') === 'pixel');
   const [importJson, setImportJson] = useState('');
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const importCombat = useCombatStore(state => state.importCombat);
+  const [isImporting, setIsImporting] = useState(false);
   useEffect(() => {
     document.body.classList.toggle('font-pixel-headings', usePixelFont);
     localStorage.setItem('font-theme', usePixelFont ? 'pixel' : 'system');
   }, [usePixelFont]);
-  const importMutation = useMutation({
-    mutationFn: importCombat,
-    onSuccess: (data) => {
-      if (data.success && data.data) {
-        queryClient.setQueryData(['combat', data.data.id], data.data);
-        toast.success('Encounter imported successfully!');
-        navigate(`/combat/${data.data.id}`);
-        onOpenChange(false);
-      } else {
-        toast.error(data.error || 'Failed to import.');
-      }
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
   const handleExport = () => {
     if (!combatState) {
       toast.error("No encounter data to export.");
@@ -90,16 +66,25 @@ export function SettingsSheet({ combatState, isOpen, onOpenChange }: SettingsShe
     }
   };
   const handleImport = () => {
+    setIsImporting(true);
     try {
       const parsed = JSON.parse(importJson);
-      combatStateSchema.parse(parsed); // Validate against schema
-      importMutation.mutate(importJson);
+      const validation = combatStateSchema.safeParse(parsed);
+      if (!validation.success) {
+        throw new z.ZodError(validation.error.issues);
+      }
+      const imported = importCombat(validation.data);
+      toast.success('Encounter imported successfully!');
+      navigate(`/combat/${imported.id}`);
+      onOpenChange(false);
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(`Invalid JSON format: ${error.issues.map(i => i.message).join(', ')}`);
       } else {
         toast.error("Invalid JSON format.");
       }
+    } finally {
+      setIsImporting(false);
     }
   };
   return (
@@ -134,8 +119,8 @@ export function SettingsSheet({ combatState, isOpen, onOpenChange }: SettingsShe
                 className="min-h-[100px]"
                 aria-label="Paste encounter JSON here for import"
               />
-              <Button onClick={handleImport} variant="outline" className="w-full" disabled={!importJson || importMutation.isPending} aria-label="Import encounter from JSON">
-                {importMutation.isPending ? 'Importing...' : 'Load Data'}
+              <Button onClick={handleImport} variant="outline" className="w-full" disabled={!importJson || isImporting} aria-label="Import encounter from JSON">
+                {isImporting ? 'Importing...' : 'Load Data'}
               </Button>
             </div>
           </div>
