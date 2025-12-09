@@ -17,8 +17,8 @@ interface AddEntitySheetProps {
 const entitySchema = z.object({
   name: z.string().min(1, 'Name is required'),
   type: z.enum(['player', 'monster']),
-  maxHP: z.number({ invalid_type_error: "HP must be a number" }).int().min(1, 'HP must be at least 1'),
-  initiative: z.number({ invalid_type_error: "Initiative must be a number" }).int().min(0, 'Initiative must be non-negative'),
+  maxHP: z.number().int().min(1, { message: 'HP must be at least 1' }),
+  initiative: z.number().int().min(0, { message: 'Initiative must be non-negative' }).max(99, { message: 'Initiative must be 99 or less' }),
 });
 type EntityFormData = z.infer<typeof entitySchema>;
 const addEntity = async ({ combatId, entity }: { combatId: string, entity: AddEntityRequest }) => {

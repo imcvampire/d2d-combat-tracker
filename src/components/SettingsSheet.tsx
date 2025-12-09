@@ -96,7 +96,7 @@ export function SettingsSheet({ combatState, isOpen, onOpenChange }: SettingsShe
       importMutation.mutate(importJson);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        toast.error(`Invalid JSON format: ${error.errors.map(e => e.message).join(', ')}`);
+        toast.error(`Invalid JSON format: ${error.issues.map(i => i.message).join(', ')}`);
       } else {
         toast.error("Invalid JSON format.");
       }
