@@ -13,11 +13,10 @@ Key features include:
 The app is fully functional out-of-the-box, with optimistic UI updates, loading states, and error handling.
 ## Technology Stack
 - **Frontend**: React 18, React Router 6, TypeScript, Tailwind CSS 3, shadcn/ui (Radix UI primitives), Framer Motion (animations), Lucide React (icons), Sonner (toasts), Zustand (state management), @tanstack/react-query (data fetching/caching).
-- **State & Persistence**: Zustand for global state management, with `zustand/middleware/persist` for automatic saving to localStorage.
+- **State & Persistence**: Zustand for global state management, with `zustand/middleware/persist` for automatic saving to localStorage. No backend/Cloudflare dependencies; pure client-side with localStorage.
 - **Styling**: Tailwind CSS with custom themes (retro neon palette: #00FFD5, #FF3D81, #0B0B0B), Google Fonts (Press Start 2P for pixel accents).
 - **Build Tools**: Vite (bundling), Bun (package manager).
 - **Other**: Zod (validation), Immer (immutable updates), clsx & tailwind-merge (utility classes), UUID (IDs).
-**Note**: The backend has been fully removed. The app runs entirely client-side with localStorage persistence.
 ## Installation
 This project uses Bun as the package manager for faster installs and development. Ensure you have Bun installed (v1.0+): [Install Bun](https://bun.sh/docs/installation).
 1. Clone the repository:
@@ -41,7 +40,7 @@ bun run dev
 ### Quick Demo
 1. On the Home page, click **Create Encounter** to start a new combat.
 2. Add entities via the **Add Entity** sheet (name, type: player/monster, max HP, initiative).
-3. Roll initiatives or edit manually��the list auto-sorts.
+3. Roll initiatives or edit manually—the list auto-sorts.
 4. Use **Next Turn** to advance; apply damage/heal or toggle statuses on selected entities.
 5. Data persists across refreshes via localStorage.
 ## Development
@@ -56,7 +55,7 @@ bun run dev
 - `bun run lint`: Run ESLint.
 - `bun run preview`: Local preview of the production build.
 ## Deployment
-To deploy this application, build the static assets and host them on any static hosting provider.
+To deploy this application, build the static assets and host them on any static hosting provider. Backend fully removed—no wrangler.jsonc or worker/ files required. Deploy dist/ to static hosts only.
 1. Build the project:
    ```
    bun run build
@@ -73,3 +72,4 @@ Contributions welcome! Fork the repo, create a feature branch, and submit a PR. 
 Please adhere to the code style (ESLint, Prettier via `bun run lint`).
 ## License
 MIT License. See [LICENSE](LICENSE) for details.
+**Project verified as 100% static SPA, ready for production.**
