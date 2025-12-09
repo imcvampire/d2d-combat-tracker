@@ -4,30 +4,9 @@
  */
  {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "retro-init-tracker-mf2xc4_f95d9cp_-upoxd",
-	"main": "worker/index.ts",
-	"compatibility_date": "2025-04-24",
-	"assets": {
-		"not_found_handling": "single-page-application",
-		"run_worker_first": ["/api/*", "!/api/docs/*"]
-	},
-	"observability": {
-		"enabled": true
-	},
-    "durable_objects": {
-      "bindings": [
-        {
-          "name": "GlobalDurableObject",
-          "class_name": "GlobalDurableObject"
-        }
-      ]
-    },
-    "migrations": [
-      {
-        "tag": "v1",
-        "new_sqlite_classes": [
-          "GlobalDurableObject"
-        ]
-      }
-    ]
+	"name": "d2d-combat-tracker",
+  "assets": {
+    "directory": "./dist/",
+    "not_found_handling": "single-page-application"
+  }
 }
